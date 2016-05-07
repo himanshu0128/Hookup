@@ -550,13 +550,13 @@ class Home(GridLayout):
 			print file_list
 			
 			self.clear_widgets()
-			
+			#self.orientation='vertical'
 			self.rows=3
 		
 			temp=[]
 			for file in file_list:
 				temp.append(file[0])
-				
+			#temp.append(peer[1])	
 			print "temp"
 			print temp
 			list_item_args_converter = lambda row_index, row_data: {'text':row_data, 'size_hint_y': None, 'height': '60dp'}
@@ -564,12 +564,12 @@ class Home(GridLayout):
 			self.list_adapter.bind(on_selection_change=self.display_selectedfile)
 			list_view= ListView(adapter=self.list_adapter)
 			self.add_widget(list_view)
-			
+			#bt=Button()
 			self.add_widget(Button(text="Fetch file", on_press=self.fetch_onclick,size_hint=(0.2,0.2)))
 			self.add_widget(Button(text="Back",on_press=self.welcome,size_hint=(0.2,0.2)))
 		
-			
-			
+			#print('SELECTED file = ',choice[0],' by ',choice[1])
+			#fetchfile(choice[0],choice[1])
 		elif returncode == 'TRACKER ERROR':
 			droid.makeToast('Could not connect to tracker ip')
                     
@@ -625,12 +625,12 @@ class Home(GridLayout):
 			
 		
 	def startchat_onclick(self,instance):
-		
+		#super(LoginScreen, self).__init__(**kwargs)
 		self.clear_widgets()
 		global peername_privatechat
 		global mssg_privatechat
 		self.rows=2
-		
+		#footer = GridLayout()
 		footer = GridLayout(cols=2, size_hint_y=None, height=40)
 		self.label_privatechat=Label(text="hello world", size_hint_y=.8, halign='left', valign='top', markup=True)
 		self.add_widget(self.label_privatechat)
@@ -655,12 +655,12 @@ class Home(GridLayout):
 		    	
 				socket_list = [sys.stdin, s]
 				print "1"         
-				
+				# Get the list sockets which are readable
 				read_sockets, write_sockets, error_sockets = select.select(socket_list , [], [])
 				 
 				print "2"
 				for sock in read_sockets:
-				    
+				    #incoming message from remote server
 				    print "hey"
 				    if sock == s:
 				        data = sock.recv(4096)
@@ -672,12 +672,12 @@ class Home(GridLayout):
 				        else :
 				        	print data
 				        	self.label_privatechat.text=self.label_privatechat.text+'\n[b]'+peername_privatechat+'[/b] '+data
-				            
-				            
-				            
+				            #print data
+				            #sys.stdout.write(data)
+				            #prompt()
 				            
 				     
-				    
+				    #user entered a message
 				    else :
 				        msg = sys.stdin.readline()
 				        
@@ -686,7 +686,7 @@ class Home(GridLayout):
 				        	
 				        s.send('CHAT_START:'+mPeer+':'+msg)
 				        self.textinput_privatechat.text=''
-				        
+				        #prompt()
 		except Exception as e:
 			print e		    
 				        
@@ -697,7 +697,7 @@ class Home(GridLayout):
 		
 	def privatechat_onclicksend(self, instance):
 		self.label_privatechat.text=self.label_privatechat.text+'\n[b]You:[/b] '+self.textinput_privatechat.text.encode('utf-8')
-		
+		#self.textinput_privatechat.text=''
 		sys.stdin = StringIO.StringIO(self.textinput_privatechat.text.encode('utf-8'))
 		
 		
@@ -716,9 +716,9 @@ class Home(GridLayout):
 			plist.append(peer)
 			
 			
-		
+		#print plist
 			
-		
+		#print plist
 		
 		temp=[]
 		for peer in plist:
@@ -727,7 +727,7 @@ class Home(GridLayout):
 		print temp
 		
 		self.clear_widgets()
-		
+		#self.orientation='vertical'
 		self.rows=2
 		
 		self.list_adapter = ListAdapter(data=[i for i in temp],cls=ListItemButton,sorted_keys=[],selection_mode='single')
