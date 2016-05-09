@@ -1,17 +1,20 @@
 import socket
 import random
-import threading,traceback, os, subprocess, stat, shutil, StringIO, sys, select,mimetypes,urlparse
+import threading,traceback, os, subprocess, stat, shutil, StringIO, sys, select,mimetypes,urlparse, subprocess
 import kivy
+import servchat, clichat
 kivy.require('1.7.2')
 from kivy.utils import platform
 if platform() == "android":
 	from jnius import cast
 	from jnius import autoclass
 	from plyer import camera
+	from plyer import audio
 
 if platform()!= "android":
 	from sendfile import sendfile	
 
+from kivy.clock import Clock
 from kivy.app import App
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.floatlayout import FloatLayout
@@ -89,7 +92,7 @@ def client(self,msg_type):
 		            self.rows=3
 		            bt=Button(text="Back",size_hint=(0.2,0.2))
 		            bt.bind(on_press=self.welcome)
-		            self.add_widget(Label(text="Available peers",pos_hint={'center_x':0.5,'center_y':0.9}))        
+		            self.add_widget(Label(text="Available peers"))        
 		            while True:
 					
 		                temp=[]
@@ -301,16 +304,16 @@ def handlepeerclient(c):
             print(e)
             
     elif mssg_type == 'VOICEMESSAGE':
-        c.send('READY')
+    	c.send('READY')
         try:
-            with open("/sdcard/Hookup/sample_audio.mp3","wb") as f: 
+            with open("/sdcard/Hookup/Downloads/sample_audio.3gp","wb") as f: 
                 while True:
                     data=c.recv(1024)
                     if not data:
                         f.close()
                         break
                     f.write(data)
-               
+            print("audio file recveived!")   
         except Exception as e:
             print(e)
 
@@ -347,6 +350,7 @@ def fetchfile(self,filename,ip):
         print('Sending filename ',filename,' to ',ip)
         data='FILETRANSFER:'+mPeer+':'+filename
         s.send(data)
+        
         try:
         	with open('/sdcard/Hookup/Downloads/'+filename, 'wb') as f:
 		    	while True:
@@ -355,7 +359,9 @@ def fetchfile(self,filename,ip):
 		        		f.close()
 		        		break
 		        	f.write(data)
+		        	
 			print('Successfully get the file')
+			self.l1.text='File received'
 			s.close()
             
         except Exception as e:
@@ -419,6 +425,7 @@ def startserverpeer():
 			threading.Thread(target=server).start()
 		except Exception,e:
 			print e	
+			
 	        
 	
 class Home(GridLayout):
@@ -444,7 +451,7 @@ class Home(GridLayout):
 		self.clear_widgets()
 		
 		global mPeer
-		self.rows=10
+		self.rows=7
 		mPeer=(self.peername.text).encode('utf-8')
 		head=GridLayout(cols=3)
 		
@@ -452,38 +459,45 @@ class Home(GridLayout):
 		head.add_widget(Label(text="HOOkUP"))
 		head.add_widget(Label(text="Hello" + " " + mPeer))
 		self.add_widget(head)
-		bt1=Button(text='My peers',size_hint=(0.3,0.3))
+		bt1=Button(text='Available peers',size_hint=(0.3,0.3))
 		bt2=Button(text='My Shared Folder',size_hint=(0.3,0.3))
 		bt3=Button(text='Search file',size_hint=(0.3,0.3))
-		bt4=Button(text='Upload file',size_hint=(0.3,0.3))
-		bt5=Button(text='Send Voice Message',size_hint=(0.3,0.3))
-		bt6=Button(text='Group chat',size_hint=(0.3,0.3))
-		bt7=Button(text='Private chat',size_hint=(0.3,0.3))
+		#bt4=Button(text='Upload file',size_hint=(0.3,0.3))
+		
+		#bt7=Button(text='Private chat',size_hint=(0.3,0.3))
 		bt1.bind(on_press=self.func1)
 		bt2.bind(on_press=self.func2)
 		
 		
 		bt3.bind(on_press=self.func3)
-		bt4.bind(on_press=self.func4)
-		bt5.bind(on_press=self.func4)
-		bt6.bind(on_press=self.func4)
-		bt7.bind(on_press=self.func7)
+		#bt4.bind(on_press=self.func4)
+		
+		
+		#bt7.bind(on_press=self.func7)
 		self.add_widget(bt1)
 		self.add_widget(bt2)
 		self.add_widget(bt3)
-		self.add_widget(bt4)
-		self.add_widget(bt5)
-		self.add_widget(bt6)
-		self.add_widget(bt7)
+		#self.add_widget(bt4)
+		
+		
+		#self.add_widget(bt7)
 		if platform()=='android':
+			bt5=Button(text='Send Voice Message',size_hint=(0.3,0.3))
 			bt8=Button(text='Take Picture',size_hint=(0.3,0.3))
 			bt9=Button(text='Capture Video',size_hint=(0.3,0.3))
+			
 			bt8.bind(on_press=self.func8)
 			bt9.bind(on_press=self.func9)
+			bt5.bind(on_press=self.func5)
+			
+			self.add_widget(bt5)
 			self.add_widget(bt8)
 			self.add_widget(bt9)
-		
-	
+			
+		if platform()!='android':
+			bt6=Button(text='Group chat',size_hint=(0.3,0.3))
+			bt6.bind(on_press=self.func6)
+			self.add_widget(bt6)
 	
 	
 	
@@ -581,6 +595,11 @@ class Home(GridLayout):
 		filepath,filename=filechooser(self)
 		print('File chosen is ',filename,' at',filepath)
 		
+	def func6(self, instance):
+		#subprocess.call(['xterm','-e','clichat.py'])
+		os.system("gnome-terminal -e 'python clichat.py'")
+		#clichat.chat_client()
+		
 	def func8(self,instance):
 		num = random.randrange(1,20)
 		filename = 'image'+str(num)+'.jpg'
@@ -596,17 +615,117 @@ class Home(GridLayout):
 		file_tofetch =self.list_adapter.selection[0].text 
 		print 'selected item is: ',file_tofetch
 		
+		
+	def display_selectedpeer(self,adapter,*args):
+		global peername_privatechat
+		print 'selected item is:'		
+		peername_privatechat =self.list_adapter.selection[0].text 
+		print peername_privatechat
+	
+	
+	def sendit(self,instance):	
+		global peername_privatechat
+		global peer_list
+		print "in sending"
+		self.l1.text="Sending Record.."
+		peerip_privatechat=''
+		for p in peer_list:
+			if peername_privatechat==p[1]:
+				peerip_privatechat=p[0]
+				peername_privatechat=p[1]
+			
+			
+		
+		try:
+			s=socket.socket()
+			s.connect((peerip_privatechat,9989))
+			s.send("VOICEMESSAGE")
+			s.recv(1024)
+			f=open("/sdcard/Hookup/sample_audio.3gp",'rb')
+			while True:
+				l=f.read(4096)
+				while l:
+					s.send(l)
+					l=f.read(4096)
+				if not l:
+					f.close()
+					s.close()
+					break
+			self.l1.text="sent successfully"		
+			
+		except Exception as e:
+			print(e)
+
+	
+	
+	def sendvoice(self,instance):
+		
+		
+		#global mssg_privatechat
+		
+		self.clear_widgets()
+		self.rows=6
+		self.l1=Label(text="Press Start to Record:")
+		self.add_widget(self.l1)
+		self.add_widget(Button(text="START",on_press=self.start))
+		self.add_widget(Button(text="STOP",on_press=self.stop))
+		self.add_widget(Button(text="PLAY",on_press=self.play))
+		audio.file_path="/sdcard/Hookup/sample_audio.3gp"
+		self.add_widget(Button(text="SEND",on_press=self.sendit))
+		self.add_widget(Button(text="Back",on_press=self.welcome))
+		
+		
+	
+	
+		
+	def func5(self,instance):
+		global peer_list
+		print("bt5 called")
+		returncode=clientinfo(self,'PEERLIST')
+		if returncode =='OK':
+			print(returncode)
+		print peer_list
+		
+		temp=[]
+		for peer in peer_list:
+			temp.append(peer[1])	
+			
+		print temp
+		
+		
+		
+		self.clear_widgets()
+		
+		self.rows=2
+		list_item_args_converter = lambda row_index, row_data: {'text':row_data, 'size_hint_y': None, 'height': '60dp'}
+		self.list_adapter = ListAdapter(data=[i for i in temp],cls=ListItemButton,sorted_keys=[],selection_mode='single',args_converter=list_item_args_converter)
+		self.list_adapter.bind(on_selection_change=self.display_selectedpeer)
+		list_view= ListView(adapter=self.list_adapter)
+		self.add_widget(list_view)
+		self.add_widget(Button(text="Start Recording", on_press=self.sendvoice))
+		
+		
+		
+				
+	def start(self,instance):
+		audio.start()
+		self.l1.text="Recording.."
+		
+	def stop(self,instance):
+		audio.stop()
+		self.l1.text="Done Recording"
+		
+	def play(self,instance):
+		audio.play()
+		self.l1.text="Playing record"
+    
 			
 		
 	def sharedfile_onclick(self,instance):
 		threading.Thread(target=self.openfileThread).start()
 	
 	
-	def display_selectedpeer(self,adapter,*args):
-		global peername_privatechat
-		print 'selected item is:'		
-		peername_privatechat =self.list_adapter.selection[0].text 
-		print peername_privatechat
+	
 		
 	
 	
@@ -615,13 +734,41 @@ class Home(GridLayout):
 		global file_tofetch
 		global file_list
 		self.rows=2
-		self.add_widget(Label(text="hello world",size_hint=(0.2,0.2)))
+		self.l1=Label(text="Receiving File...",size_hint=(0.2,0.2))
+		self.add_widget(self.l1)
 		self.add_widget(Button(text="Back",on_press=self.welcome,size_hint=(0.2,0.2)))
 		for p in file_list:
 			if file_tofetch==p[0]:
 				peerip=p[1]
     			
-		fetchfile(self,file_tofetch,peerip)
+		threading.Thread(target=fetchfile, args=(self,file_tofetch,peerip,)).start() 
+		
+		
+	def chatloop(self,s):
+		socket_list = [s]
+		print "1"
+		read_sockets, write_sockets, error_sockets = select.select(socket_list , [], [])
+		print "2"
+		for sock in read_sockets:
+			print "hey"
+			if sock == s:
+				data = sock.recv(4096)
+				if not data :
+					print '\nDisconnected from chat server'
+				else :
+					print data
+					self.label_privatechat.text=self.label_privatechat.text+'\n[b]'+peername_privatechat+'[/b] '+data
+		Clock.schedule_interval(chatloop,0.5)
+				
+		
+	def privatechat_onclicksend(self,s):
+		self.label_privatechat.text=self.label_privatechat.text+'\n[b]You:[/b] '+self.textinput_privatechat.text.encode('utf-8')
+		msg=self.textinput_privatechat.text.encode('utf-8')
+		s=self.socket
+		s.send('CHAT_START:'+mPeer+':'+msg)
+		self.textinput_privatechat.text=''
+		#sys.stdin = StringIO.StringIO(self.textinput_privatechat.text.encode('utf-8'))
+
 			
 		
 	def startchat_onclick(self,instance):
@@ -629,64 +776,29 @@ class Home(GridLayout):
 		self.clear_widgets()
 		global peername_privatechat
 		global mssg_privatechat
-		self.rows=2
-		
-		footer = GridLayout(cols=2, size_hint_y=None, height=40)
-		self.label_privatechat=Label(text="hello world", size_hint_y=.8, halign='left', valign='top', markup=True)
-		self.add_widget(self.label_privatechat)
-		self.textinput_privatechat=TextInput(multiline=True,font_size=16)
-		footer.add_widget(self.textinput_privatechat)		
-		footer.add_widget(Button(text="Send", size_hint_x=None, width=100, on_press=self.privatechat_onclicksend))
 		peerip_privatechat=''
-		self.add_widget(footer)
 		for p in peer_list:
 			if peername_privatechat==p[1]:
 				peerip_privatechat=p[0]
 				peername_privatechat=p[1]
 		print 'CHATTING WITH '+peerip_privatechat
+		self.rows=2
+		s=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+		s.connect((peerip_privatechat,9989))
+		print 'Connected to', peername_privatechat
+		footer = GridLayout(cols=2, size_hint_y=None, height=40)
+		self.label_privatechat=Label(text="hello world", size_hint_y=.8, halign='left', valign='top', markup=True)
+		self.add_widget(self.label_privatechat)
+		self.textinput_privatechat=TextInput(multiline=True,font_size=16)
+		footer.add_widget(self.textinput_privatechat)
+		self.socket=s		
+		footer.add_widget(Button(text="Send", size_hint_x=None, width=100,on_press=self.privatechat_onclicksend))
 		self.label_privatechat.text='[b]Chatting with '+peername_privatechat+'[/b]'
+		self.add_widget(footer)
 		try:
-			
-		    s=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		    s.connect((peerip_privatechat,9989))
-		    print 'Connected to', peername_privatechat
-		    while 1:
-		    	
-				socket_list = [sys.stdin, s]
-				print "1"         
-				
-				read_sockets, write_sockets, error_sockets = select.select(socket_list , [], [])
-				 
-				print "2"
-				for sock in read_sockets:
-				    
-				    print "hey"
-				    if sock == s:
-				        data = sock.recv(4096)
-				        
-				        
-				        if not data :
-				            print '\nDisconnected from chat server'
-				            sys.exit()
-				        else :
-				        	print data
-				        	self.label_privatechat.text=self.label_privatechat.text+'\n[b]'+peername_privatechat+'[/b] '+data
-				            
-				            
-				            
-				            
-				     
-				    
-				    else :
-				        msg = sys.stdin.readline()
-				        
-				        if(msg == 'EXITCHAT'):
-				        	s.close()
-				        	
-				        s.send('CHAT_START:'+mPeer+':'+msg)
-				        self.textinput_privatechat.text=''
-				        
+			while True:
+				self.chatloop(s)
 		except Exception as e:
 			print e		    
 				        
@@ -695,11 +807,7 @@ class Home(GridLayout):
 		
 		#startchat(self,peerip_privatechat,peername_privatechat,textinput_privatechat)
 		
-	def privatechat_onclicksend(self, instance):
-		self.label_privatechat.text=self.label_privatechat.text+'\n[b]You:[/b] '+self.textinput_privatechat.text.encode('utf-8')
-		
-		sys.stdin = StringIO.StringIO(self.textinput_privatechat.text.encode('utf-8'))
-		
+			
 		
 			
 		
